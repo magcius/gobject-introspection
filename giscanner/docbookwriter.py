@@ -40,9 +40,6 @@ class DocBookFormatter(BaseFormatter):
     def get_type_string(self, type):
         return str(type.ctype)
 
-    def render_parameter(self, param_type, param_name):
-        return "%s %s" % (param_type, param_name)
-
     def _render_parameter(self, param, extra_content=''):
         with self.writer.tagcontext("parameter"):
             if param.type.ctype is not None:

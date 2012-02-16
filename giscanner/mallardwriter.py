@@ -38,10 +38,6 @@ class MallardFormatter(BaseFormatter):
     def get_title(self, node, parent):
         raise NotImplementedError('get_title not implemented')
 
-    # FIXME
-    def render_parameter(self, param_type, param_name):
-        return "%s %s" % (param_type, param_name)
-
     def _render_parameter(self, param, extra_content=''):
         with self.writer.tagcontext("parameter"):
             if param.type.ctype is not None:
@@ -91,11 +87,6 @@ class MallardFormatter(BaseFormatter):
     def get_method_as_title(self, entity):
         method = entity.get_ast()
         return "%s ()" % method.symbol
-
-    def get_page_name(self, node):
-        if node.gtype_name is None:
-            return node.ctype
-        return node.gtype_name
 
     def get_class_name(self, node):
         if node.gtype_name is None:
