@@ -23,10 +23,8 @@
 
 import os.path
 import re
-import sys
 
 from . import ast
-from .girparser import GIRParser
 from .xmlwriter import XMLWriter
 
 XMLNS = "http://projectmallard.org/1.0/"

@@ -20,10 +20,7 @@
 # 02110-1301, USA.
 #
 
-import sys
-
 from . import ast
-from .girparser import GIRParser
 from .xmlwriter import XMLWriter
 from .docbookdescription import get_formatted_description
 
