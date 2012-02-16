@@ -22,7 +22,7 @@
 
 from . import ast
 from .xmlwriter import XMLWriter
-from .doctoolcommon import BaseFormatter, BaseWriter
+from .doctoolcommon import BaseFormatter, BaseWriter, _space
 from .docbookdescription import get_formatted_description
 
 XMLNS = "http://docbook.org/ns/docbook"
@@ -33,58 +33,7 @@ DOCTYPE = """<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 <!ENTITY version SYSTEM "version.xml">
 ]>""" #"
 
-def _space(num):
-    return " " * num
-
 class DocBookFormatter(BaseFormatter):
-    def get_type_string(self, type):
-        return str(type.ctype)
-
-    def _render_parameter(self, param, extra_content=''):
-        with self.writer.tagcontext("parameter"):
-            if param.type.ctype is not None:
-                link_dest = param.type.ctype.replace("*", "")
-            else:
-                link_dest = param.type.ctype
-            with self.writer.tagcontext("link", [("linkend", "%s" % link_dest)]):
-                self.writer.write_tag("type", [], link_dest)
-            self.writer.write_line(extra_content)
-
-    def _render_parameters(self, parent, parameters):
-        self.writer.write_line(
-            "%s(" % _space(40 - len(parent.symbol)))
-
-        parent_class = parent.parent_class
-        ctype = ast.Type(parent.parent_class.ctype + '*')
-        params = []
-        params.append(ast.Parameter(parent_class.name.lower(), ctype))
-        params.extend(parameters)
-
-        first_param = True
-        for param in params:
-            if not first_param:
-                self.writer.write_line("\n%s" % _space(61))
-            else:
-                first_param = False
-
-            if not param == params[-1]:
-                comma = ", "
-            else:
-                comma = ""
-
-            if isinstance(param.type, ast.Varargs):
-                with self.writer.tagcontext("parameter"):
-                    self.writer.write_line('...%s' % comma)
-            else:
-                extra_content = " "
-                if param.type.ctype is not None and '*' in param.type.ctype:
-                    extra_content += '*'
-                extra_content += param.argname
-                extra_content += comma
-                self._render_parameter(param, extra_content)
-
-        self.writer.write_line(");\n")
-
     def get_method_as_title(self, method):
         return "%s ()" % method.symbol
 
@@ -93,24 +42,6 @@ class DocBookFormatter(BaseFormatter):
         if isinstance(node, ast.Alias) or node.gtype_name is None:
             return node.ctype
         return node.gtype_name
-
-    def get_class_name(self, node):
-        if node.gtype_name is None:
-            return node.ctype
-        return node.gtype_name
-
-    def get_type_name(self, node):
-        if isinstance(node, ast.Array):
-            if node.array_type == ast.Array.C:
-                return str(node.element_type) + "[]"
-            else:
-                return "%s&lt;%s&gt;" % (node.array_type, str(node.element_type))
-        elif isinstance(node, ast.Map):
-            return "GHashTable&lt;%s, %s&gt;" % (str(node.key_type), str(node.value_type))
-        elif isinstance(node, ast.List):
-            return "GList&lt;%s&gt;" % str(node.element_type)
-        else:
-            return str(node)
 
     def render_method(self, method, link=False):
         self.writer.disable_whitespace()
@@ -145,25 +76,6 @@ class DocBookFormatter(BaseFormatter):
 
         self._render_parameters(method, method.parameters)
         self.writer.enable_whitespace()
-
-    def _get_annotations(self, argument):
-        annotations = {}
-
-        if hasattr(argument.type, 'element_type') and \
-           argument.type.element_type is not None:
-            if isinstance(argument.type.element_type, ast.Array):
-                element_type = argument.type.element_type.array_type
-            else:
-                element_type = argument.type.element_type
-            annotations['element-type'] = element_type
-
-        if argument.transfer is not None and argument.transfer != 'none':
-            annotations['transfer'] = argument.transfer
-
-        if hasattr(argument, 'allow_none') and argument.allow_none:
-            annotations['allow-none'] = None
-
-        return annotations
 
     def render_param_list(self, method):
         self._render_param(method.parent_class.name.lower(), 'instance', [])
@@ -373,7 +285,7 @@ class DocBookWriter(BaseWriter):
         with self._writer.tagcontext("chapter", [("xml:id", "ch_%s" % (
                         page.name))]):
             self._writer.write_tag(
-                "title", [], self._formatter.get_title(page))
+                "title", [], self._formatter.get_title(page, None))
 
             with self._writer.tagcontext("refsynopsisdiv",
                     [('id', '%s.synopsis' % page.name),
