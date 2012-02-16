@@ -25,12 +25,81 @@ from .xmlwriter import XMLWriter
 def _space(num):
     return " " * num
 
+class LanguageSemanticsPython(object):
+    def get_namespaced_node_title(self, node):
+        return "%s.%s" % (node.namespace.name, node.name)
+
+    def get_node_title(self, node, parent):
+        if isinstance(node, ast.Namespace):
+            return "%s Documentation" % node.name
+        elif isinstance(node, ast.Function):
+            if node.is_method or node.is_constructor:
+                return "%s.%s.%s" % (node.namespace.name, parent.name, node.name)
+            else:
+                return "%s.%s" % (node.namespace.name, node.name)
+        elif isinstance(node, ast.Property):
+            return "%s" % node.name
+        elif isinstance(node, ast.Signal):
+            return "%s" % node.name
+        else:
+            return self.get_namespaced_node_title(node)
+
+    def render_struct(self, node, writer):
+        name = self.get_namespaced_node_title(node)
+
+        parent = getattr(node, "parent", None)
+
+        parent_name = ""
+        if parent:
+            if isinstance(node.parent, ast.Type):
+                parent_name = str(node.parent)
+            else:
+                parent_name = self.get_namespaced_node_title(node)
+        elif isinstance(node, ast.Interface):
+            parent_name = "GObject.Interface"
+
+        if parent_name:
+            parent_clause = "(%s)" % (parent_name,)
+        else:
+            parent_clause = ""
+
+        writer.write_line("%s%s:" % (name, parent_clause))
+
+class LanguageSemanticsC(object):
+    def get_node_title(self, node, parent):
+        if isinstance(node, ast.Namespace):
+            return "%s Documentation" % node.name
+        elif isinstance(node, ast.Function):
+            return node.symbol
+        elif isinstance(node, ast.Property):
+            return parent.c_name + ':' + node.name
+        elif isinstance(node, ast.Signal):
+            return parent.c_name + '::' + node.name
+        else:
+            return node.c_name
+
+    def render_struct(self, node, writer):
+        try:
+            writer.disable_whitespace()
+            writer.write_line("struct               ")
+            writer.write_tag(
+                "link",
+                [("linkend", "%s-struct" % node.name)],
+                "%s" % node.name)
+            writer.write_line(";\n")
+        finally:
+            writer.enable_whitespace()
+
 class BaseFormatter(object):
-    def __init__(self):
-        self.writer = None
+    def __init__(self, writer, language):
+        self.writer = writer
+        self.language = language
 
     def get_title(self, node, parent):
-        raise NotImplementedError('get_title not implemented')
+        return self.language.get_node_title(node, parent)
+
+    def render_struct(self, node):
+        self.language.render_struct(node, self.writer)
 
     def get_type_string(self, type):
         return str(type.ctype)
@@ -118,9 +187,9 @@ class BaseFormatter(object):
         return annotations
 
 class BaseWriter(object):
-    def __init__(self, formatter):
+    def __init__(self, formatter, language):
         self._writer = XMLWriter()
-        self._formatter = formatter
+        self._formatter = formatter(self._writer, language)
         self._transformer = None
         self.namespace = None
 

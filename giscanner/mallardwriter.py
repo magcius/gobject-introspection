@@ -149,35 +149,6 @@ class MallardFormatter(BaseFormatter):
         flags = ["TODO: signal flags not in GIR currently"]
         self._render_prop_or_signal(sig_name, "", flags)
 
-class MallardFormatterC(MallardFormatter):
-    def get_title(self, node, parent):
-        if isinstance(node, ast.Namespace):
-            return "%s Documentation" % node.name
-        elif isinstance(node, ast.Function):
-            return node.symbol
-        elif isinstance(node, ast.Property):
-            return parent.c_name + ':' + node.name
-        elif isinstance(node, ast.Signal):
-            return parent.c_name + '::' + node.name
-        else:
-            return node.c_name
-
-class MallardFormatterPython(MallardFormatter):
-    def get_title(self, node, parent):
-        if isinstance(node, ast.Namespace):
-            return "%s Documentation" % node.name
-        elif isinstance(node, ast.Function):
-            if node.is_method or node.is_constructor:
-                return "%s.%s.%s" % (node.namespace.name, parent.name, node.name)
-            else:
-                return "%s.%s" % (node.namespace.name, node.name)
-        elif isinstance(node, ast.Property):
-            return "%s" % node.name
-        elif isinstance(node, ast.Signal):
-            return "%s" % node.name
-        else:
-            return "%s.%s" % (node.namespace.name, node.name)
-
 class MallardPage(object):
     def __init__(self, writer, node, parent):
         self.writer = writer
@@ -345,8 +316,8 @@ class MallardPage(object):
                 self.render_doc_inline(writer, rest[len(link):])
 
 class MallardWriter(BaseWriter):
-    def __init__(self, formatter):
-        super(MallardWriter, self).__init__(formatter)
+    def __init__(self, language):
+        super(MallardWriter, self).__init__(MallardFormatter, language)
         self._index = None
         self._pages = []
         self._xrefs = {}

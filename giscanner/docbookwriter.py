@@ -167,52 +167,6 @@ class DocBookFormatter(BaseFormatter):
 
         self._render_prop_or_signal(sig_name, "", flags)
 
-
-class DocBookFormatterPython(DocBookFormatter):
-    def get_title(self, page):
-        return "%s.%s" % (page.ast.namespace.name, page.ast.name)
-
-    def render_struct(self, page):
-        class_ = page.ast
-        try:
-            self.writer.disable_whitespace()
-            self.writer.write_line("class %s" % self.get_title(page))
-
-            if hasattr(page.ast, "parent") and page.ast.parent is not None:
-                if isinstance(page.ast.parent, ast.Type):
-                    parent_name = page.ast.parent
-                else:
-                    parent_name = "%s.%s" % (page.ast.parent.namespace.name,
-                                             page.ast.parent.name)
-            elif isinstance(page.ast, ast.Interface):
-                parent_name = "GObject.Interface"
-            else:
-                parent_name = None
-            if parent_name is not None:
-                self.writer.write_line("(%s)" % (parent_name))
-
-            self.writer.write_line(":\n")
-        finally:
-            self.writer.enable_whitespace()
-
-
-class DocBookFormatterC(DocBookFormatter):
-    def get_title(self, page):
-        return page.ast.ctype
-
-    def render_struct(self, page):
-        try:
-            self.writer.disable_whitespace()
-            self.writer.write_line("struct               ")
-            self.writer.write_tag(
-                "link",
-                [("linkend", "%s-struct" % page.name)],
-                "%s" % page.name)
-            self.writer.write_line(";\n")
-        finally:
-            self.writer.enable_whitespace()
-
-
 class DocBookPage(object):
     def __init__(self, name, ast_node):
         self.methods = []
@@ -242,10 +196,9 @@ class DocBookPage(object):
         return self.signals
 
 class DocBookWriter(BaseWriter):
-    def __init__(self, formatter):
-        super(DocBookWriter, self).__init__(formatter)
+    def __init__(self, language):
+        super(DocBookWriter, self).__init__(DocBookFormatter, language)
         self._pages = []
-        self._writer = XMLWriter()
 
     def _add_page(self, page):
         self._pages.append(page)
@@ -285,7 +238,7 @@ class DocBookWriter(BaseWriter):
         with self._writer.tagcontext("chapter", [("xml:id", "ch_%s" % (
                         page.name))]):
             self._writer.write_tag(
-                "title", [], self._formatter.get_title(page, None))
+                "title", [], self._formatter.get_title(page.ast, None))
 
             with self._writer.tagcontext("refsynopsisdiv",
                     [('id', '%s.synopsis' % page.name),
@@ -298,7 +251,7 @@ class DocBookWriter(BaseWriter):
                     self._writer.write_tag("anchor", [("id", page.name)])
 
                 with self._writer.tagcontext('synopsis'):
-                    self._formatter.render_struct(page)
+                    self._formatter.render_struct(page.ast)
 
                     for ast_node in page.get_methods():
                         self._formatter.render_method(ast_node, link=True)
