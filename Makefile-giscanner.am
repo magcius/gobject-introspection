@@ -36,6 +36,7 @@ pkgpyexec_PYTHON =			\
 	giscanner/docbookdescription.py	\
 	giscanner/docbookwriter.py	\
 	giscanner/docmain.py	\
+	giscanner/doctoolcommon.py	\
 	giscanner/dumper.py		\
 	giscanner/introspectablepass.py	\
 	giscanner/girparser.py		\

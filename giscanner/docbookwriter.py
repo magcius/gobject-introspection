@@ -22,6 +22,7 @@
 
 from . import ast
 from .xmlwriter import XMLWriter
+from .doctoolcommon import BaseFormatter
 from .docbookdescription import get_formatted_description
 
 XMLNS = "http://docbook.org/ns/docbook"
@@ -35,17 +36,7 @@ DOCTYPE = """<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 def _space(num):
     return " " * num
 
-class DocBookFormatter(object):
-    def __init__(self):
-        self.namespace = None
-        self.writer = None
-
-    def set_namespace(self, namespace):
-        self.namespace = namespace
-
-    def set_writer(self, writer):
-        self.writer = writer
-
+class DocBookFormatter(BaseFormatter):
     def get_type_string(self, type):
         return str(type.ctype)
 
@@ -343,12 +334,9 @@ class DocBookPage(object):
 
 class DocBookWriter(object):
     def __init__(self, formatter):
-        self._namespace = None
+        self.namespace = None
         self._pages = []
-
         self._writer = XMLWriter()
-
-        formatter.set_writer(self._writer)
         self._formatter = formatter
 
     def _add_page(self, page):
@@ -356,11 +344,9 @@ class DocBookWriter(object):
 
     def add_transformer(self, transformer):
         self._transformer = transformer
-
-        self._namespace = self._transformer._namespace
-        self._formatter.set_namespace(self._namespace)
-
-        for name, node in self._namespace.iteritems():
+        self.namespace = self._transformer._namespace
+        self._formatter.namespace = self.namespace
+        for name, node in self.namespace.iteritems():
             if isinstance(node, (ast.Class, ast.Record, ast.Interface, ast.Alias)):
                 page_name = self._formatter.get_page_name(node)
                 self._add_node(node, page_name)
@@ -375,11 +361,11 @@ class DocBookWriter(object):
     def write(self, output):
         self._writer.write_line(DOCTYPE)
         with self._writer.tagcontext("book", [
-            ("xml:id", "page_%s" % self._namespace.name),
+            ("xml:id", "page_%s" % self.namespace.name),
             ("xmlns", XMLNS),
             ("version", XMLVERSION)]):
             self._writer.write_tag("title", [], "%s Documentation" % (
-                self._namespace.name))
+                self.namespace.name))
 
             for page in self._pages:
                 self._render_page(page)
