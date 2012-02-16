@@ -26,7 +26,7 @@ import re
 
 from . import ast
 from .xmlwriter import XMLWriter
-from .doctoolcommon import BaseFormatter
+from .doctoolcommon import BaseFormatter, BaseWriter
 
 XMLNS = "http://projectmallard.org/1.0/"
 XMLNS_UI = "http://projectmallard.org/experimental/ui/"
@@ -438,17 +438,15 @@ class MallardPage(object):
             if len(link) < len(rest):
                 self.render_doc_inline(writer, rest[len(link):])
 
-class MallardWriter(object):
+class MallardWriter(BaseWriter):
     def __init__(self, formatter):
-        self.namespace = None
+        super(MallardWriter, self).__init__(formatter)
         self._index = None
         self._pages = []
-        self._formatter = formatter
         self._xrefs = {}
 
-    def add_transformer(self, transformer):
-        self._transformer = transformer
-        self.namespace = self._transformer._namespace
+    def set_transformer(self, transformer):
+        super(MallardWriter, self).set_transformer(transformer)
         self._index = MallardPage(self, self.namespace, None)
 
     def write(self, output):

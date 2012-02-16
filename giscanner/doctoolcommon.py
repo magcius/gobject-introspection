@@ -19,7 +19,19 @@
 # 02110-1301, USA.
 #
 
+from .xmlwriter import XMLWriter
+
 class BaseFormatter(object):
     def __init__(self):
         self.writer = None
 
+class BaseWriter(object):
+    def __init__(self, formatter):
+        self._writer = XMLWriter()
+        self._formatter = formatter
+        self._transformer = None
+        self.namespace = None
+
+    def set_transformer(self, transformer):
+        self._transformer = transformer
+        self.namespace = self._transformer._namespace

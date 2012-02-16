@@ -41,7 +41,7 @@ class GIDocGenerator(object):
         self.transformer = Transformer.parse_from_gir(filename, extra_include_dirs)
 
     def generate(self, writer, output):
-        writer.add_transformer(self.transformer)
+        writer.set_transformer(self.transformer)
         writer.write(output)
 
 def doc_main(args):

@@ -22,7 +22,7 @@
 
 from . import ast
 from .xmlwriter import XMLWriter
-from .doctoolcommon import BaseFormatter
+from .doctoolcommon import BaseFormatter, BaseWriter
 from .docbookdescription import get_formatted_description
 
 XMLNS = "http://docbook.org/ns/docbook"
@@ -332,19 +332,17 @@ class DocBookPage(object):
     def get_signals(self):
         return self.signals
 
-class DocBookWriter(object):
+class DocBookWriter(BaseWriter):
     def __init__(self, formatter):
-        self.namespace = None
+        super(DocBookWriter, self).__init__(formatter)
         self._pages = []
         self._writer = XMLWriter()
-        self._formatter = formatter
 
     def _add_page(self, page):
         self._pages.append(page)
 
-    def add_transformer(self, transformer):
-        self._transformer = transformer
-        self.namespace = self._transformer._namespace
+    def set_transformer(self, transformer):
+        super(DocBookWriter, self).set_transformer(transformer)
         self._formatter.namespace = self.namespace
         for name, node in self.namespace.iteritems():
             if isinstance(node, (ast.Class, ast.Record, ast.Interface, ast.Alias)):
