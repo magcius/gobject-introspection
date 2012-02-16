@@ -106,12 +106,7 @@ class DocBookPage(object):
         return self.signals
 
 class DocBookWriter(BaseWriter):
-    def __init__(self, language):
-        super(DocBookWriter, self).__init__(DocBookFormatter, language)
-        self._pages = []
-
-    def _add_page(self, page):
-        self._pages.append(page)
+    Formatter = DocBookFormatter
 
     def set_transformer(self, transformer):
         super(DocBookWriter, self).set_transformer(transformer)
@@ -123,7 +118,7 @@ class DocBookWriter(BaseWriter):
 
     def _add_node(self, node, name):
         page = DocBookPage(name, node)
-        self._add_page(page)
+        self.track_page(page)
 
         if isinstance(node, (ast.Class, ast.Record, ast.Interface, ast.Alias)):
             page.id = node.ctype
@@ -137,7 +132,7 @@ class DocBookWriter(BaseWriter):
             self._writer.write_tag("title", [], "%s Documentation" % (
                 self.namespace.name))
 
-            for page in self._pages:
+            for page in self.all_pages:
                 self._render_page(page)
 
         fp = open(output, 'w')

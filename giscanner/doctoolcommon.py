@@ -272,13 +272,86 @@ class BaseFormatter(object):
 
         self._render_prop_or_signal(sig_name, "", flags)
 
+class Page(object):
+    def __init__(self, node, parent=None, root=None):
+        self.node = node
+        self.parent = parent
+
+        if root is not None:
+            self.root = root
+        else:
+            self.root = parent.root
+
+        self.page_id = self._get_page_id()
+
+        self.subpages = []
+        self.make_subpages()
+
+    def _get_page_id(self):
+        parent, node = self.parent, self.node
+        if isinstance(node, ast.Namespace):
+            return 'index'
+        elif isinstance(node, ast.Property) and parent is not None:
+            return node.namespace.name + '.' + parent.name + '-' + node.name
+        elif isinstance(node, ast.Signal) and parent is not None:
+            return node.namespace.name + '.' + parent.name + '--' + node.name
+        elif parent is not None and not isinstance(parent, ast.Namespace):
+            return node.namespace.name + '.' + parent.name + '.' + node.name
+        else:
+            return node.namespace.name + '.' + node.name
+
+    def get_children(self):
+        children = []
+        if isinstance(self.node, ast.Namespace):
+            cihldren = [node for node in self.node.itervalues()]
+        elif isinstance(self.node, (ast.Class, ast.Record)):
+            children = self.node.methods + self.node.constructors
+        elif isinstance(self.node, ast.Interface):
+            children = self.node.methods
+
+        if isinstance(self.node, (ast.Class, ast.Interface)):
+            children += self.node.properties + self.node.signals
+
+        return children
+
+    def make_subpages(self):
+        for child in self.get_children():
+            self.subpages.append(Page(child, self))
+        self.root.track_pages(self.subpages)
+
+    def get_xref_id(self):
+        if getattr(self.node, 'symbol', None) is not None:
+            return self.node.symbol
+        elif isinstance(self.node, ast.Class):
+            return self.node.c_name
+
 class BaseWriter(object):
-    def __init__(self, formatter, language):
+    Page = Page
+    Formatter = None
+
+    def __init__(self, language):
         self._writer = XMLWriter()
-        self._formatter = formatter(self._writer, language)
+        self._formatter = self.Formatter(self._writer, language)
         self._transformer = None
         self.namespace = None
+        self.root_page = None
+        self.all_pages = []
+        self.xrefs = {}
+
+    def track_page(self, page):
+        self.xrefs[page.get_xref_id()] = page
+        self.all_pages.append(page)
+
+    def track_pages(self, pages):
+        for page in pages:
+            self.track_page(page)
+
+    def lookup_xref(self, xref_id):
+        if xref_id in self.xrefs:
+            return self.xrefs[xref_id].page_id
+        return xref_id
 
     def set_transformer(self, transformer):
         self._transformer = transformer
         self.namespace = self._transformer._namespace
+        self.root_page = self.Page(self.namespace, root=self)
