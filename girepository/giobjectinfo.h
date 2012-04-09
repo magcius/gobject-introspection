@@ -104,6 +104,10 @@ GISignalInfo *    g_object_info_get_signal       (GIObjectInfo *info,
 GISignalInfo *    g_object_info_find_signal      (GIObjectInfo *info,
 						  const gchar  *name);
 
+GISignalInfo *    g_object_info_find_signal_using_interfaces (GIObjectInfo  *info,
+                                                              const gchar   *name,
+                                                              GIObjectInfo **implementor);
+
 gint              g_object_info_get_n_vfuncs     (GIObjectInfo *info);
 GIVFuncInfo *     g_object_info_get_vfunc        (GIObjectInfo *info,
 						  gint          n);
